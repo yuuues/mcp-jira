@@ -15,7 +15,7 @@ class CreateIssueService(MCPTool):
     
     @property
     def description(self) -> str:
-        return "Create a new JIRA issue. Requires project key, summary, and issue type. Optionally accepts description, priority, assignee, labels, and custom fields."
+        return "Create a new JIRA issue. Requires project key, summary, and issue type. Optionally accepts description, priority, assignee, labels, time estimate, and custom fields."
     
     async def execute(
         self,
@@ -29,6 +29,7 @@ class CreateIssueService(MCPTool):
         labels: Optional[str] = None,
         parent_key: Optional[str] = None,
         components: Optional[str] = None,
+        time_estimate: Optional[str] = None,
         server: Optional[str] = None,
         email: Optional[str] = None,
         token: Optional[str] = None
@@ -47,6 +48,7 @@ class CreateIssueService(MCPTool):
             labels: Comma-separated list of labels (e.g., "backend,urgent")
             parent_key: Parent issue key for sub-tasks (e.g., PROJ-123)
             components: Comma-separated list of component names
+            time_estimate: Original time estimate in Jira notation (e.g., "2h 30m", "1d", "1w 2d") or plain seconds
             server: JIRA server URL override
             email: Email override
             token: API token override
@@ -93,7 +95,13 @@ class CreateIssueService(MCPTool):
             fields["components"] = [
                 {"name": comp.strip()} for comp in components.split(",") if comp.strip()
             ]
-        
+
+        if time_estimate:
+            seconds, err = self.parse_time_estimate(time_estimate)
+            if err:
+                return {"error": err}
+            fields["timeoriginalestimate"] = seconds
+
         client = self.get_client(creds)
         try:
             result = await client.post("/issue", json_data={"fields": fields})

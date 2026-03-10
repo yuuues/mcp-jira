@@ -1,4 +1,5 @@
 """Base class for MCP tools/services."""
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -78,6 +79,44 @@ class MCPTool(ABC):
         """
         return JiraClient(credentials)
     
+    @staticmethod
+    def parse_time_estimate(value: str) -> tuple[Optional[int], Optional[str]]:
+        """
+        Parse a human-readable time estimate string into seconds.
+
+        Accepts Jira-style notation (1w 2d 3h 30m) or a plain integer string
+        interpreted as seconds. Assumptions: 1w = 5d, 1d = 8h.
+
+        Args:
+            value: Time string such as "2h 30m", "1d", "3600", "1w 2d 4h"
+
+        Returns:
+            tuple: (seconds: int | None, error_message: str | None)
+        """
+        value = value.strip()
+        if not value:
+            return None, "Time estimate cannot be empty"
+
+        # Plain integer → treat as seconds directly
+        if re.fullmatch(r"\d+", value):
+            return int(value), None
+
+        units = {"w": 5 * 8 * 3600, "d": 8 * 3600, "h": 3600, "m": 60}
+        pattern = re.compile(r"(\d+)\s*([wdhm])", re.IGNORECASE)
+        matches = pattern.findall(value)
+
+        # Reject if nothing was parsed or there is unexpected text left over
+        reconstructed = re.sub(r"\s+", "", "".join(f"{n}{u}" for n, u in matches))
+        normalised = re.sub(r"\s+", "", value.lower())
+        if not matches or reconstructed.lower() != normalised:
+            return None, (
+                f"Invalid time estimate format: '{value}'. "
+                "Use Jira notation such as '2h 30m', '1d', '1w 2d 4h 30m', or a plain integer (seconds)."
+            )
+
+        seconds = sum(int(n) * units[u.lower()] for n, u in matches)
+        return seconds, None
+
     def validate_credentials(self, credentials: JiraCredentials) -> tuple[bool, Optional[str]]:
         """
         Validate that credentials are complete.

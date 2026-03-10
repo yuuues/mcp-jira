@@ -15,7 +15,7 @@ class EditIssueService(MCPTool):
 
     @property
     def description(self) -> str:
-        return "Edit an existing JIRA issue. Allows updating summary, description, priority, labels, assignee, components, epic, and sprint. Only provided fields will be updated."
+        return "Edit an existing JIRA issue. Allows updating summary, description, priority, labels, assignee, components, epic, sprint, and time estimate. Only provided fields will be updated."
 
     async def execute(
         self,
@@ -29,6 +29,7 @@ class EditIssueService(MCPTool):
         components: Optional[str] = None,
         epic_key: Optional[str] = None,
         sprint_id: Optional[int] = None,
+        time_estimate: Optional[str] = None,
         server: Optional[str] = None,
         email: Optional[str] = None,
         token: Optional[str] = None
@@ -47,6 +48,7 @@ class EditIssueService(MCPTool):
             components: New comma-separated list of component names (replaces existing ones)
             epic_key: Key of the Epic to assign to (e.g., PROJ-100)
             sprint_id: ID of the Sprint to assign to
+            time_estimate: New original time estimate in Jira notation (e.g., "2h 30m", "1d", "1w 2d") or plain seconds. Pass "0" to clear.
             server: JIRA server URL override
             email: Email override
             token: API token override
@@ -103,6 +105,12 @@ class EditIssueService(MCPTool):
                 fields["parent"] = None
             else:
                 fields["parent"] = {"key": epic_key.strip()}
+
+        if time_estimate is not None:
+            seconds, err = self.parse_time_estimate(time_estimate)
+            if err:
+                return {"error": err}
+            fields["timeoriginalestimate"] = seconds
 
         client = self.get_client(creds)
         try:
