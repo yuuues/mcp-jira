@@ -9,6 +9,12 @@ from .get_myself import GetMyselfService
 from .add_comment import AddCommentService
 from .transition_issue import TransitionIssueService
 from .assign_issue import AssignIssueService
+from .create_issue import CreateIssueService
+from .clone_issue import CloneIssueService
+from .create_subtask import CreateSubtaskService
+from .edit_issue import EditIssueService
+from .get_attachments import GetAttachmentsService
+from .download_attachment import DownloadAttachmentService
 
 ALL_TOOLS = [
     GetIssueService,
@@ -19,6 +25,12 @@ ALL_TOOLS = [
     AddCommentService,
     TransitionIssueService,
     AssignIssueService,
+    CreateIssueService,
+    CloneIssueService,
+    CreateSubtaskService,
+    EditIssueService,
+    GetAttachmentsService,
+    DownloadAttachmentService,
 ]
 
 __all__ = [
@@ -31,5 +43,11 @@ __all__ = [
     'AddCommentService',
     'TransitionIssueService',
     'AssignIssueService',
+    'CreateIssueService',
+    'CloneIssueService',
+    'CreateSubtaskService',
+    'EditIssueService',
+    'GetAttachmentsService',
+    'DownloadAttachmentService',
     'ALL_TOOLS',
 ]

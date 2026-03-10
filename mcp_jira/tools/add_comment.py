@@ -2,6 +2,7 @@
 from typing import Any, Optional
 
 from fastmcp import Context
+from .adf import markdown_to_adf
 from .base import MCPTool
 
 
@@ -50,27 +51,11 @@ class AddCommentService(MCPTool):
         if not body or not body.strip():
             return {"error": "Comment body is required"}
         
-        adf_body = {
-            "type": "doc",
-            "version": 1,
-            "content": [
-                {
-                    "type": "paragraph",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": body
-                        }
-                    ]
-                }
-            ]
-        }
-        
         client = self.get_client(creds)
         try:
             result = await client.post(
                 f"/issue/{issue_key}/comment",
-                json_data={"body": adf_body}
+                json_data={"body": markdown_to_adf(body)}
             )
             return result
         finally:

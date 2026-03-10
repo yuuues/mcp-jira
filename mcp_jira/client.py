@@ -152,6 +152,37 @@ class JiraClient:
                 "message": str(e),
             }
     
+    async def download_file(self, url: str, local_path: str) -> dict[str, Any]:
+        """
+        Download a binary file from a URL (authenticated) to a local path.
+
+        Args:
+            url: Full URL of the file to download (e.g., attachment content URL)
+            local_path: Absolute or relative path where the file will be saved
+
+        Returns:
+            dict: Success with saved path, or error dictionary
+        """
+        import os
+        client = await self._get_client()
+        try:
+            response = await client.get(url)
+            response.raise_for_status()
+            os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
+            with open(local_path, "wb") as f:
+                f.write(response.content)
+            return {"success": True, "path": os.path.abspath(local_path)}
+        except httpx.HTTPStatusError as e:
+            return {
+                "error": True,
+                "status_code": e.response.status_code,
+                "message": self._parse_error_response(e.response),
+            }
+        except httpx.RequestError as e:
+            return {"error": True, "message": str(e)}
+        except OSError as e:
+            return {"error": True, "message": f"Could not write file: {e}"}
+
     def _parse_error_response(self, response: httpx.Response) -> str:
         """Parse error message from JIRA error response."""
         try:
