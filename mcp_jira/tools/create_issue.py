@@ -107,7 +107,7 @@ class CreateIssueService(MCPTool):
             fields["timetracking"] = {"originalEstimate": time_estimate.strip()}
 
         if team_id:
-            fields["customfield_10001"] = {"id": team_id.strip()}
+            fields["customfield_10029"] = {"id": team_id.strip()}
 
         client = self.get_client(creds)
         try:

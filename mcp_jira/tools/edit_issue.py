@@ -117,9 +117,9 @@ class EditIssueService(MCPTool):
 
         if team_id is not None:
             if not team_id.strip():
-                fields["customfield_10001"] = None
+                fields["customfield_10029"] = None
             else:
-                fields["customfield_10001"] = {"id": team_id.strip()}
+                fields["customfield_10029"] = {"id": team_id.strip()}
 
         client = self.get_client(creds)
         try:
