@@ -30,6 +30,8 @@ class CreateIssueService(MCPTool):
         parent_key: Optional[str] = None,
         components: Optional[str] = None,
         time_estimate: Optional[str] = None,
+        team_id: Optional[str] = None,
+        sprint_id: Optional[int] = None,
         server: Optional[str] = None,
         email: Optional[str] = None,
         token: Optional[str] = None
@@ -46,9 +48,11 @@ class CreateIssueService(MCPTool):
             priority: Priority name (e.g., "High", "Medium", "Low")
             assignee_account_id: Account ID of the assignee
             labels: Comma-separated list of labels (e.g., "backend,urgent")
-            parent_key: Parent issue key for sub-tasks (e.g., PROJ-123)
+            parent_key: Parent issue key for sub-tasks or issues under an Epic (e.g., PROJ-123)
             components: Comma-separated list of component names
-            time_estimate: Original time estimate in Jira notation (e.g., "2h 30m", "1d", "1w 2d") or plain seconds
+            time_estimate: Original time estimate in Jira notation (e.g., "2h 30m", "1d", "1w 2d")
+            team_id: Team ID to assign (maps to customfield_10001)
+            sprint_id: ID of the Sprint to assign the issue to after creation
             server: JIRA server URL override
             email: Email override
             token: API token override
@@ -97,14 +101,41 @@ class CreateIssueService(MCPTool):
             ]
 
         if time_estimate:
-            seconds, err = self.parse_time_estimate(time_estimate)
+            err = self.validate_time_estimate(time_estimate)
             if err:
                 return {"error": err}
-            fields["timeoriginalestimate"] = seconds
+            fields["timetracking"] = {"originalEstimate": time_estimate.strip()}
+
+        if team_id:
+            fields["customfield_10001"] = {"id": team_id.strip()}
 
         client = self.get_client(creds)
         try:
             result = await client.post("/issue", json_data={"fields": fields})
+            if result.get("error"):
+                return result
+
+            if sprint_id is not None:
+                issue_key = result.get("key")
+                httpx_client = await client._get_client()
+                import httpx
+                agile_url = f"{creds.get_base_url()}/rest/agile/1.0/sprint/{sprint_id}/issue"
+                try:
+                    sprint_resp = await httpx_client.post(
+                        agile_url,
+                        json={"issues": [issue_key]}
+                    )
+                    sprint_resp.raise_for_status()
+                    result["sprint"] = {"success": True}
+                except httpx.HTTPStatusError as e:
+                    result["sprint"] = {
+                        "error": True,
+                        "status_code": e.response.status_code,
+                        "message": client._parse_error_response(e.response)
+                    }
+                except Exception as e:
+                    result["sprint"] = {"error": True, "message": str(e)}
+
             return result
         finally:
             await client.close()

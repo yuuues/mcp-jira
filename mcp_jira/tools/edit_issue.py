@@ -27,9 +27,10 @@ class EditIssueService(MCPTool):
         assignee_account_id: Optional[str] = None,
         labels: Optional[str] = None,
         components: Optional[str] = None,
-        epic_key: Optional[str] = None,
+        parent_key: Optional[str] = None,
         sprint_id: Optional[int] = None,
         time_estimate: Optional[str] = None,
+        team_id: Optional[str] = None,
         server: Optional[str] = None,
         email: Optional[str] = None,
         token: Optional[str] = None
@@ -46,9 +47,10 @@ class EditIssueService(MCPTool):
             assignee_account_id: New assignee account ID
             labels: New comma-separated list of labels (replaces existing ones)
             components: New comma-separated list of component names (replaces existing ones)
-            epic_key: Key of the Epic to assign to (e.g., PROJ-100)
+            parent_key: Key of the parent issue or Epic to assign to (e.g., PROJ-100). Pass empty string to remove.
             sprint_id: ID of the Sprint to assign to
-            time_estimate: New original time estimate in Jira notation (e.g., "2h 30m", "1d", "1w 2d") or plain seconds. Pass "0" to clear.
+            time_estimate: New original time estimate in Jira notation (e.g., "2h 30m", "1d", "1w 2d"). Pass "0" to clear.
+            team_id: Team ID to assign (maps to customfield_10001). Pass empty string to clear.
             server: JIRA server URL override
             email: Email override
             token: API token override
@@ -98,19 +100,26 @@ class EditIssueService(MCPTool):
                     {"name": comp.strip()} for comp in components.split(",") if comp.strip()
                 ]
 
-        if epic_key is not None:
-            if not epic_key.strip():
-                # To remove epic link, parent might not be null directly, but we can try removing parent or epic link
-                # Note: removing parent might require different handling, but we will try null
+        if parent_key is not None:
+            if not parent_key.strip():
                 fields["parent"] = None
             else:
-                fields["parent"] = {"key": epic_key.strip()}
+                fields["parent"] = {"key": parent_key.strip()}
 
         if time_estimate is not None:
-            seconds, err = self.parse_time_estimate(time_estimate)
+            err = self.validate_time_estimate(time_estimate)
             if err:
                 return {"error": err}
-            fields["timeoriginalestimate"] = seconds
+            if time_estimate.strip() == "0":
+                fields["timetracking"] = {"originalEstimate": "0", "remainingEstimate": "0"}
+            else:
+                fields["timetracking"] = {"originalEstimate": time_estimate.strip()}
+
+        if team_id is not None:
+            if not team_id.strip():
+                fields["customfield_10001"] = None
+            else:
+                fields["customfield_10001"] = {"id": team_id.strip()}
 
         client = self.get_client(creds)
         try:
