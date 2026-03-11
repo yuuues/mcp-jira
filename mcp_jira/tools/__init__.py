@@ -15,6 +15,7 @@ from .create_subtask import CreateSubtaskService
 from .edit_issue import EditIssueService
 from .get_attachments import GetAttachmentsService
 from .download_attachment import DownloadAttachmentService
+from .get_field_options import GetFieldOptionsService
 
 ALL_TOOLS = [
     GetIssueService,
@@ -31,6 +32,7 @@ ALL_TOOLS = [
     EditIssueService,
     GetAttachmentsService,
     DownloadAttachmentService,
+    GetFieldOptionsService,
 ]
 
 __all__ = [
@@ -49,5 +51,6 @@ __all__ = [
     'EditIssueService',
     'GetAttachmentsService',
     'DownloadAttachmentService',
+    'GetFieldOptionsService',
     'ALL_TOOLS',
 ]
